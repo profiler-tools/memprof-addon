@@ -34,8 +34,12 @@ function humanReadable(bytes) {
   };
 
   RankManager.prototype.filterBY = function RM_filterBY(nameIdx) {
-    var filterHist = this.store.getFilterList(+nameIdx);
-    return this.sortBY(filterHist, this.defaultSort);
+    var p = this.store.getFilterList(nameIdx);
+    p.then(function(values) {
+      var sort =  this.sortBY(this.store.filterNodes, this.defaultSort);
+      this.template(this.store.filterNodes);
+      console.log('sorted');
+    }.bind(this));
   };
 
   RankManager.prototype.showRankList = function RM_showRankList() {
@@ -102,8 +106,8 @@ function humanReadable(bytes) {
         if (typeof evt.target.dataset.filter !== 'undefined') {
           var nameIdx = +evt.target.dataset.filter;
           console.log('filter by nameIdx:' + nameIdx);
-          this.filterHist = this.filterBY(this.rankHist, nameIdx);
-          this.template(this.filterHist);
+          this.filterHist = this.filterBY(nameIdx);
+//          this.template(this.filterHist);
         }
         break;
       default:

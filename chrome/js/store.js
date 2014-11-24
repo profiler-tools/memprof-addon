@@ -12,7 +12,13 @@ function escapeHtml(html){
     this.traces = null;
     this.allocated = null;
     this.treeData = {};
-    this.uniData = [];
+    // all data
+    this.nodes = [];
+    // for filter
+    this.filterCount = 0;
+    this.lookupList = {};
+    this.filterNodes = [];
+
     this.init();
   }
 
@@ -33,6 +39,7 @@ function escapeHtml(html){
       this.names = names;
       this.traces = traces;
       this.allocated = allocated;
+
       this.preprocessData();
       // notify others data is ready
       window.dispatchEvent(new CustomEvent('dataReady'));
@@ -42,25 +49,26 @@ function escapeHtml(html){
       this.names = null;
       this.traces = null;
       this.allocated = null;
-      this.uniData = null;
+      this.nodes = null;
     },
 
     preprocessData: function s_preprocessData() {
       var names = this.names,
-          traces = this.traces,
-          allocated = this.allocated,
-          hist = this.uniData;
+          nodes = this.nodes,
+          lookupList = this.lookupList;
       var t, e, i, j;
 
       for (i = 0; i < names.length; i++) {
-        names[i] = escapeHtml(names[i]);
-        hist[i] = {
+        names[i] = escapeHTML(names[i]);
+        var n = {
           nameIdx: i,
-          parent: null, childs: [],
+          parents: [], childs: [],
           selfAccu: 0, totalAccu: 0,
           selfSize: 0, totalSize: 0,
           selfPeak: 0, totalPeak: 0
-          };
+        };
+        nodes.push(n);
+        lookupList[i] = n;
       }
     },
 
@@ -73,7 +81,7 @@ function escapeHtml(html){
       var names = this.names,
           traces = this.traces,
           allocated = this.allocated,
-          hist = this.uniData;
+          hist = this.nodes;
       var t, e, i, j, len;
 
       for (i = 0, len = allocated.length; i < len; i++) {
@@ -103,7 +111,7 @@ function escapeHtml(html){
       var names = this.names,
           traces = this.traces,
           allocated = this.allocated,
-          hist = this.uniData;
+          hist = this.nodes;
       var t, e, i, j, len;
 
       for (i = 0, len = allocated.length; i < len; i++) {
@@ -135,7 +143,7 @@ function escapeHtml(html){
       var names = this.names,
           traces = this.traces,
           allocated = this.allocated,
-          hist = this.uniData;
+          hist = this.nodes;
       var t, e, i, j, len;
 
       for (i = 0, len = allocated.length; i < len; i++) {
@@ -169,10 +177,42 @@ function escapeHtml(html){
       }
     },
 
+    /**
+     * only show childs of target nameIdx
+     */
+    gatherList: function s_gatherList(nameIdx, resolve) {
+      var n = this.lookupList[nameIdx];
+      console.log('n:'+ n.nameIdx + '/cnt:'+this.filterCount);
+      this.filterCount += 1;
+      this.filterNodes.push(n);
+      var workers = [];
+      if (n.childs.length) {
+        for(var i = 0, len = n.childs.length; i < len; i++) {
+          var idx = n.childs[i];
+          var p = new Promise(function(resolve) {
+            this.gatherList(idx, resolve);
+          }.bind(this));
+          workers.push(p);
+        }
+      } else { // end of childs
+        resolve();
+      }
+      Promise.all(workers).then(function(values) {
+        resolve();
+      });
+    },
+
     // for ranklist filter
     getFilterList: function s_getFilterList(nameIdx) {
-      var hist = this.uniData;
-      return this.hist;
+      this.filterNodes = [];
+      this.filterCount = 0;
+      var p = new Promise(function(resolve) {
+        this.gatherList(nameIdx, resolve);
+      }.bind(this));
+//      p.then(function(values) {
+//        return this.filterNodes;
+//      }.bind(this));
+      return p;
     },
 
     // for ranklist
@@ -180,54 +220,67 @@ function escapeHtml(html){
       var names = this.names,
           traces = this.traces,
           allocated = this.allocated,
-          hist = this.uniData;
+          nodes = this.nodes;
       var tracesEntry, allocatedEntry, parentTraceEntry, i, j, len;
 
       for (i = 0, len = allocated.length; i < len; i++) {
         var visited = [];
         allocatedEntry = allocated[i];
         tracesEntry = traces[allocatedEntry.traceIdx];
-        if (typeof hist[tracesEntry.nameIdx] === 'undefined') {
+        if (typeof nodes[tracesEntry.nameIdx] === 'undefined') {
           continue;
         }
         // add parent and childs
         parentTraceEntry = traces[tracesEntry.parentIdx];
-        hist[tracesEntry.nameIdx].parent = parentTraceEntry.nameIdx;
-        // XXX hack
-        if (typeof hist[parentTraceEntry.nameIdx] === 'undefined') {
-          continue;
+        // add parents
+        if (typeof nodes[parentTraceEntry.nameIdx] !== 'undefined') {
+//          console.log('log parent '+ parentTraceEntry.nameIdx);
+          if (nodes[tracesEntry.nameIdx].childs.indexOf(tracesEntry.nameIdx) < 0) {
+            nodes[tracesEntry.nameIdx].parents.push(parentTraceEntry.nameIdx);
+//            console.log('to '+ tracesEntry.nameIdx);
+          }
         }
-        if (hist[parentTraceEntry.nameIdx].childs.indexOf(tracesEntry.nameIdx) < 0) {
-          hist[parentTraceEntry.nameIdx].childs.push(tracesEntry.nameIdx);
+        // add childs
+        if (typeof nodes[parentTraceEntry.nameIdx] === 'undefined') {
+          continue;
+        } else {
+//          console.log('log child '+ tracesEntry.nameIdx);
+          if (nodes[parentTraceEntry.nameIdx].childs.length === 0) {
+            nodes[parentTraceEntry.nameIdx].childs.push(tracesEntry.nameIdx);
+//            console.log('directly to parent '+ parentTraceEntry.nameIdx);
+          }
+          else if (nodes[parentTraceEntry.nameIdx].childs.indexOf(tracesEntry.nameIdx) < 0) {
+            nodes[parentTraceEntry.nameIdx].childs.push(tracesEntry.nameIdx);
+//            console.log('to parent '+ parentTraceEntry.nameIdx);
+          }
         }
 
         // update self stat
         if (allocatedEntry.size > 0) {
-          hist[tracesEntry.nameIdx].selfAccu += allocatedEntry.size;
+          nodes[tracesEntry.nameIdx].selfAccu += allocatedEntry.size;
         }
 
-        hist[tracesEntry.nameIdx].selfSize += allocatedEntry.size;
-        if (hist[tracesEntry.nameIdx].selfSize > hist[tracesEntry.nameIdx].selfPeak) {
-          hist[tracesEntry.nameIdx].selfPeak = hist[tracesEntry.nameIdx].selfSize;
+        nodes[tracesEntry.nameIdx].selfSize += allocatedEntry.size;
+        if (nodes[tracesEntry.nameIdx].selfSize > nodes[tracesEntry.nameIdx].selfPeak) {
+          nodes[tracesEntry.nameIdx].selfPeak = nodes[tracesEntry.nameIdx].selfSize;
         }
 
         // update total stat
         for (j = allocatedEntry.traceIdx; j != 0; j = traces[j].parentIdx) {
           tracesEntry = traces[j];
-          if (!visited[tracesEntry.nameIdx] && typeof hist[tracesEntry.nameIdx] !== 'undefined') {
+          if (!visited[tracesEntry.nameIdx] && typeof nodes[tracesEntry.nameIdx] !== 'undefined') {
             visited[tracesEntry.nameIdx] = true;
-            hist[tracesEntry.nameIdx].totalSize += allocatedEntry.size;
+            nodes[tracesEntry.nameIdx].totalSize += allocatedEntry.size;
             if (allocatedEntry.size > 0) {
-              hist[tracesEntry.nameIdx].totalAccu += allocatedEntry.size;
+              nodes[tracesEntry.nameIdx].totalAccu += allocatedEntry.size;
             }
-            if (hist[tracesEntry.nameIdx].totalSize > hist[tracesEntry.nameIdx].totalPeak) {
-              hist[tracesEntry.nameIdx].totalPeak = hist[tracesEntry.nameIdx].totalSize;
+            if (nodes[tracesEntry.nameIdx].totalSize > nodes[tracesEntry.nameIdx].totalPeak) {
+              nodes[tracesEntry.nameIdx].totalPeak = nodes[tracesEntry.nameIdx].totalSize;
             }
           }
         }
       }
-
-      return hist;
+      return nodes;
     },
 
     // for tree

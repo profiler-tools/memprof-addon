@@ -18,12 +18,12 @@
     <link rel="stylesheet" href="chrome://memory-profiler-ui/skin/css/app.css"/>
     <xul:script src="chrome://browser/content/devtools/theme-switching.js"/>
 
-    <xul:script src="js/pad.js"/>
-    <xul:script src="js/hub.js"/>
-    <xul:script src="js/rank.js"/>
-    <xul:script src="js/store.js"/>
-    <xul:script src="js/tree.js"/>
-    <xul:script src="js/profilerManager.js"/>
+    <xul:script src="js/shared/pad.js"/>
+    <xul:script src="js/shared/hub.js"/>
+    <xul:script src="js/shared/rank.js"/>
+    <xul:script src="js/shared/store.js"/>
+    <xul:script src="js/shared/tree.js"/>
+    <xul:script src="js/shared/profilerManager.js"/>
     <xul:script src="js/app.js"/>
     <xul:script src="tool.js"/>
   </head>

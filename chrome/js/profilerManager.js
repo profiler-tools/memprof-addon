@@ -43,15 +43,13 @@
   ProfilerManager.prototype.getProfileResults  = 
     function PM_getProfileResults () {
       var getFns = [];
-      getFns.push(this.memoryProfiler.getFrameNameTable());
-      getFns.push(this.memoryProfiler.getStacktraceTable());
-      getFns.push(this.memoryProfiler.getAllocatedEntries());
+      getFns.push(this.memoryProfiler.getResults());
       var self = this;
       Promise.all(getFns).then(function(Results) {
         self.store.create(
-          Results[0],
-          Results[1],
-          Results[2]
+          Results[0].names,
+          Results[0].traces,
+          Results[0].events
         );
       });
   };

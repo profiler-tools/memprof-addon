@@ -33,23 +33,7 @@ let MemprofActor = protocol.ActorClass({
     response: {}
   }),
 
-  getFrameNameTable: method(function() {
-  }, {
-    request: {},
-    response: {
-      ret: RetVal("json")
-    }
-  }),
-
-  getStacktraceTable: method(function() {
-  }, {
-    request: {},
-    response: {
-      ret: RetVal("json")
-    }
-  }),
-
-  getAllocatedEntries: method(function() {
+  getResults: method(function() {
   }, {
     request: {},
     response: {

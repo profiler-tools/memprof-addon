@@ -1,0 +1,3 @@
+[submodule "chrome/js/shared"]
+	path = chrome/js/shared
+	url = git@github.com:profiler-tools/memprof-shared.git

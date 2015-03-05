@@ -26,7 +26,10 @@ function app_start(gFront) {
   hub.start();
 
   var padOption = {
-    'elements': {'pad': document.getElementById('pad')},
+    'elements': {'pad': document.getElementById('pad'),
+                 'positiveMax':  document.getElementById('positiveMax'),
+                 'negativeMax':  document.getElementById('negativeMax')
+               },
     'store': store
   };
   var padManager = new PadManager(padOption);

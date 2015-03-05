@@ -49,6 +49,11 @@
             <span>Search:</span><input type="text" id="searchBar" />
           </section>
           <section id="padPanel" class="panel">
+            <div id="padLable" hidden>
+              <span id="positiveMax" class="labelblock"></span>
+              <span id="zero" class="labelblock">0</span>
+              <span id="negativeMax" class="labelblock"></span>
+            </div>
             <canvas id="pad" width="320" height="800"></canvas>
           </section>
           <section id="infoTable" class="panel">
